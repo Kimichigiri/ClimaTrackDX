@@ -2,100 +2,453 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>IoT Data Viewer</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-doughnutlabel@1.0.0"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClimaTrack DX</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .chart-container { display: flex; gap: 50px; justify-content: center; align-items: center; }
-    canvas { max-width: 300px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: white;
+      overflow-x: hidden;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 2rem 0;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 3rem;
+    }
+    
+    .header h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(45deg, #ffffff, #bfdbfe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      margin-bottom: 0.5rem;
+    }
+    
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+    
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      flex: 1;
+      align-items: center;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 3rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 2rem;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+    
+    /* Temperature Speedometer */
+    .speedometer {
+      position: relative;
+      width: 280px;
+      height: 180px;
+      margin: 0 auto 2rem;
+    }
+    
+    .speedometer-bg {
+      width: 100%;
+      height: 100%;
+      border-radius: 280px 280px 0 0;
+      background: conic-gradient(from 180deg, 
+        #3b82f6 0deg,
+        #06b6d4 45deg,
+        #10b981 90deg,
+        #f59e0b 135deg,
+        #ef4444 180deg);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .speedometer-inner {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      bottom: -10px;
+      border-radius: 240px 240px 0 0;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+    
+    .speedometer-center {
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 30px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      z-index: 10;
+    }
+    
+    .speedometer-needle {
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      width: 4px;
+      height: 120px;
+      background: linear-gradient(to top, #ffffff, #ef4444);
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(0deg);
+      border-radius: 2px;
+      transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+    }
+    
+    .temp-value {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 15;
+    }
+    
+    .temp-labels {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+    
+    .temp-label {
+      position: absolute;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    
+    .temp-label:nth-child(1) { bottom: 10px; left: 20px; }
+    .temp-label:nth-child(2) { bottom: 50px; left: -10px; }
+    .temp-label:nth-child(3) { top: 50%; left: -15px; transform: translateY(-50%); }
+    .temp-label:nth-child(4) { top: 40px; left: 20px; }
+    .temp-label:nth-child(5) { top: 20px; left: 50%; transform: translateX(-50%); }
+    .temp-label:nth-child(6) { top: 40px; right: 20px; }
+    .temp-label:nth-child(7) { top: 50%; right: -15px; transform: translateY(-50%); }
+    .temp-label:nth-child(8) { bottom: 50px; right: -10px; }
+    .temp-label:nth-child(9) { bottom: 10px; right: 20px; }
+    
+    /* Humidity Progress Bar */
+    .humidity-container {
+      width: 100%;
+      max-width: 350px;
+      margin: 0 auto;
+    }
+    
+    .humidity-bar-bg {
+      width: 100%;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .humidity-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #06b6d4, #0ea5e9, #3b82f6);
+      border-radius: 28px;
+      width: 0%;
+      transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    }
+    
+    .humidity-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s infinite;
+      border-radius: 28px;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .humidity-value {
+      text-align: center;
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 1.5rem 0;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .last-updated {
+      text-align: center;
+      margin-top: 2rem;
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    .loading {
+      text-align: center;
+      font-size: 1.2rem;
+      opacity: 0.8;
+      padding: 4rem 0;
+    }
+    
+    .error {
+      text-align: center;
+      color: #fbbf24;
+      font-size: 1.1rem;
+      padding: 2rem;
+      background: rgba(251, 191, 36, 0.1);
+      border-radius: 12px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 0 1rem;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .card {
+        padding: 2rem;
+      }
+      
+      .speedometer {
+        width: 240px;
+        height: 150px;
+      }
+      
+      .temp-value {
+        font-size: 2rem;
+      }
+      
+      .humidity-value {
+        font-size: 2.5rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>IoT Dashboard</h2>
-  <div class="chart-container">
-    <div>
-      <h3>Temperature</h3>
-      <canvas id="tempChart"></canvas>
-    </div>
-    <div>
-      <h3>Humidity</h3>
-      <canvas id="humidityChart"></canvas>
+  <div class="header">
+    <h1>ClimaTrack DX</h1>
+    <p><span class="status-indicator"></span>Real-time Environmental Monitoring</p>
+  </div>
+  
+  <div class="dashboard" id="dashboard">
+    <div class="loading" id="loading">
+      Loading environmental data...
     </div>
   </div>
-
+  
   <script>
     const API_URL = "https://jsvnczfxqsoaonawbzrr.supabase.co/rest/v1/data_sensor?order=time.desc&limit=1";
     const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impzdm5jemZ4cXNvYW9uYXdienJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5MzA0NTAsImV4cCI6MjA2NDUwNjQ1MH0.YJH41ibTedRkCd1QFEia2N19FdKVBVBWId5pgjkyOsA";
-
+    
+    let currentData = null;
+    
     async function fetchData() {
-      const response = await fetch(API_URL, {
-        headers: {
-          "apikey": API_KEY,
-          "Authorization": `Bearer ${API_KEY}`,
-          "Content-Type": "application/json"
+      try {
+        const response = await fetch(API_URL, {
+          headers: {
+            "apikey": API_KEY,
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json"
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      });
-
-      if (!response.ok) {
-        console.error("Failed to fetch data:", response.statusText);
+        
+        const data = await response.json();
+        return data[0] || null;
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
         return null;
       }
-
-      const data = await response.json();
-      return data[0];  // ambil data terbaru
     }
-
-    function renderCharts(temp, hum) {
-      // Temperature - radial/doughnut style
-      new Chart(document.getElementById("tempChart"), {
-        type: 'doughnut',
-        data: {
-          datasets: [{
-            data: [temp, 50 - temp],
-            backgroundColor: ['#f87171', '#e5e7eb'],
-            borderWidth: 0,
-          }]
-        },
-        options: {
-          rotation: -90,
-          circumference: 180,
-          cutout: '80%',
-          plugins: {
-            doughnutlabel: {
-              labels: [
-                { text: `${temp}°C`, font: { size: 20 } },
-                { text: 'Temp' }
-              ]
-            }
-          }
-        }
-      });
-
-      // Humidity - horizontal bar
-      new Chart(document.getElementById("humidityChart"), {
-        type: 'bar',
-        data: {
-          labels: ['Humidity'],
-          datasets: [{
-            label: 'Humidity %',
-            data: [hum],
-            backgroundColor: '#60a5fa'
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          scales: {
-            x: { min: 0, max: 100 }
-          }
-        }
-      });
-    }
-
-    fetchData().then(data => {
-      if (data) {
-        renderCharts(data.temperature, data.humidity);
+    
+    function createDashboard(temp, humidity, timestamp) {
+      const dashboard = document.getElementById('dashboard');
+      
+      dashboard.innerHTML = `
+        <div class="card">
+          <h2>Temperature</h2>
+          <div class="speedometer">
+            <div class="speedometer-bg">
+              <div class="speedometer-inner"></div>
+              <div class="temp-labels">
+                <div class="temp-label">0°</div>
+                <div class="temp-label">5°</div>
+                <div class="temp-label">10°</div>
+                <div class="temp-label">15°</div>
+                <div class="temp-label">25°</div>
+                <div class="temp-label">35°</div>
+                <div class="temp-label">40°</div>
+                <div class="temp-label">45°</div>
+                <div class="temp-label">50°</div>
+              </div>
+              <div class="speedometer-needle" id="needle"></div>
+              <div class="speedometer-center"></div>
+              <div class="temp-value">${temp}°C</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h2>Humidity</h2>
+          <div class="humidity-container">
+            <div class="humidity-value">${humidity}%</div>
+            <div class="humidity-bar-bg">
+              <div class="humidity-bar-fill" id="humidityBar"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      if (timestamp) {
+        const lastUpdated = document.createElement('div');
+        lastUpdated.className = 'last-updated';
+        lastUpdated.innerHTML = `Last updated: ${new Date(timestamp).toLocaleString()}`;
+        dashboard.appendChild(lastUpdated);
       }
+      
+      // Animate temperature needle
+      setTimeout(() => {
+        const needle = document.getElementById('needle');
+        const angle = (temp / 50) * 180 - 90; // Convert 0-50°C to -90 to 90 degrees
+        needle.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+      }, 500);
+      
+      // Animate humidity bar
+      setTimeout(() => {
+        const humidityBar = document.getElementById('humidityBar');
+        humidityBar.style.width = `${Math.min(humidity, 100)}%`;
+      }, 800);
+    }
+    
+    function showError(message) {
+      const dashboard = document.getElementById('dashboard');
+      dashboard.innerHTML = `
+        <div class="error">
+          <h3>⚠️ Error Loading Data</h3>
+          <p>${message}</p>
+          <p>Retrying in 10 seconds...</p>
+        </div>
+      `;
+    }
+    
+    async function updateData() {
+      const data = await fetchData();
+      
+      if (data && data.temperature !== undefined && data.humidity !== undefined) {
+        currentData = data;
+        createDashboard(
+          Math.round(data.temperature * 10) / 10, 
+          Math.round(data.humidity * 10) / 10,
+          data.time
+        );
+      } else {
+        showError("Unable to retrieve sensor data. Please check your connection.");
+        // Retry after 10 seconds
+        setTimeout(updateData, 10000);
+      }
+    }
+    
+    // Initial load
+    updateData();
+    
+    // Update every 30 seconds
+    setInterval(updateData, 30000);
+    
+    // Add some interactive effects
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add click effect to cards
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.card')) {
+          const card = e.target.closest('.card');
+          card.style.transform = 'translateY(-10px) scale(1.02)';
+          setTimeout(() => {
+            card.style.transform = 'translateY(-10px) scale(1)';
+          }, 150);
+        }
+      });
     });
   </script>
 </body>
