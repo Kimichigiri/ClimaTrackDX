@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IoT Data Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-doughnutlabel@1.0.0"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .chart-container { display: flex; gap: 50px; justify-content: center; align-items: center; }
+    canvas { max-width: 300px; }
+  </style>
+</head>
+<body>
+  <h2>IoT Dashboard</h2>
+  <div class="chart-container">
+    <div>
+      <h3>Temperature</h3>
+      <canvas id="tempChart"></canvas>
+    </div>
+    <div>
+      <h3>Humidity</h3>
+      <canvas id="humidityChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://jsvnczfxqsoaonawbzrr.supabase.co/rest/v1/data_sensor?order=time.desc&limit=1";
+    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impzdm5jemZ4cXNvYW9uYXdienJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5MzA0NTAsImV4cCI6MjA2NDUwNjQ1MH0.YJH41ibTedRkCd1QFEia2N19FdKVBVBWId5pgjkyOsA";
+
+    async function fetchData() {
+      const response = await fetch(API_URL, {
+        headers: {
+          "apikey": API_KEY,
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        console.error("Failed to fetch data:", response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      return data[0];  // ambil data terbaru
+    }
+
+    function renderCharts(temp, hum) {
+      // Temperature - radial/doughnut style
+      new Chart(document.getElementById("tempChart"), {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [temp, 50 - temp],
+            backgroundColor: ['#f87171', '#e5e7eb'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          rotation: -90,
+          circumference: 180,
+          cutout: '80%',
+          plugins: {
+            doughnutlabel: {
+              labels: [
+                { text: `${temp}°C`, font: { size: 20 } },
+                { text: 'Temp' }
+              ]
+            }
+          }
+        }
+      });
+
+      // Humidity - horizontal bar
+      new Chart(document.getElementById("humidityChart"), {
+        type: 'bar',
+        data: {
+          labels: ['Humidity'],
+          datasets: [{
+            label: 'Humidity %',
+            data: [hum],
+            backgroundColor: '#60a5fa'
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          scales: {
+            x: { min: 0, max: 100 }
+          }
+        }
+      });
+    }
+
+    fetchData().then(data => {
+      if (data) {
+        renderCharts(data.temperature, data.humidity);
+      }
+    });
+  </script>
+</body>
+</html>
