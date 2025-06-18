@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClimaTrack DX</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
@@ -58,6 +59,7 @@
       padding: 0 2rem;
       flex: 1;
       align-items: center;
+      margin-bottom: 4rem;
     }
     
     .card {
@@ -274,6 +276,149 @@
       border: 1px solid rgba(251, 191, 36, 0.3);
     }
     
+    /* Navigation */
+    .nav-container {
+      text-align: center;
+      margin: 2rem 0;
+    }
+    
+    .nav-button {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 1rem 2rem;
+      margin: 0 1rem;
+      border-radius: 50px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      font-size: 1rem;
+    }
+    
+    .nav-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .nav-button.active {
+      background: rgba(255, 255, 255, 0.9);
+      color: #0369a1;
+    }
+    
+    /* History Section */
+    .history-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: none;
+    }
+    
+    .history-section.active {
+      display: block;
+    }
+    
+    .chart-container {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    
+    .chart-container h2 {
+      color: white;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+    
+    .chart-wrapper {
+      position: relative;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 1rem;
+    }
+    
+    .table-container {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .table-container h2 {
+      color: white;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+    
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    th {
+      background: rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+    
+    td {
+      font-weight: 400;
+    }
+    
+    tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .temp-cell {
+      color: #fbbf24;
+      font-weight: 600;
+    }
+    
+    .humidity-cell {
+      color: #06b6d4;
+      font-weight: 600;
+    }
+    
+    .loading-history {
+      text-align: center;
+      color: white;
+      padding: 4rem;
+      font-size: 1.2rem;
+    }
+    
     @media (max-width: 768px) {
       .dashboard {
         grid-template-columns: 1fr;
@@ -310,9 +455,30 @@
     <p><span class="status-indicator"></span>Real-time Environmental Monitoring</p>
   </div>
   
+  <div class="nav-container">
+    <button class="nav-button active" onclick="showSection('dashboard')">Live Dashboard</button>
+    <button class="nav-button" onclick="showSection('history')">Data History</button>
+  </div>
+  
   <div class="dashboard" id="dashboard">
     <div class="loading" id="loading">
       Loading environmental data...
+    </div>
+  </div>
+  
+  <div class="history-section" id="history">
+    <div class="chart-container">
+      <h2>📈 Temperature & Humidity Trends</h2>
+      <div class="chart-wrapper">
+        <canvas id="historyChart"></canvas>
+      </div>
+    </div>
+    
+    <div class="table-container">
+      <h2>📊 Latest 30 Readings</h2>
+      <div class="table-wrapper" id="tableWrapper">
+        <div class="loading-history">Loading historical data...</div>
+      </div>
     </div>
   </div>
   
